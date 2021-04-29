@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>micro:bit bluetooth notification test</title>
+</head>
+
+<body>
+  <form name="accelerationUI">
+    micro:bit bluetooth notification test
+    <input type="button" value="Connect" onclick="connect();" />
+    <input type="button" value="Disconnect" onclick="disconnect();" /><br />
+    Acceleration<br />
+    X = <input type="text" name="x" value="" />/
+    Y = <input type="text" name="y" value="" />/
+    Z = <input type="text" name="z" value="" />
+    <br>
+    notification duretion = <input type="text" name="notificationDuration" value="" />[s]
+  </form>
+  <script type="text/javascript">
+    var accelerometer = {
+      service: { uuid: 'e95d0753-251d-470a-a062-fa1922dfa9a8' },
+      ch: { uuid: 'e95dca4b-251d-470a-a062-fa1922dfa9a8' },
+      device: null,
+      callback: null,
+      startTime: null,
+    }
+    // callback(x, y, z)
+    accelerometer.start = function (callback) {
+      console.log(navigator.bluetooth);
+      accelerometer.callback = callback
+      navigator.bluetooth.requestDevice({
+        filters: [{
+          namePrefix: 'BBC micro:bit'
+        }],
+        optionalServices: [accelerometer.service.uuid] // to avoid Security Error
+      })
+        .then(device => {
+          accelerometer.device = device
+          return device.gatt.connect()
+        })
+        .then(server => {
+          return server.getPrimaryService(accelerometer.service.uuid)
+        })
+        .then(service => {
+          // 加速度センサーの値
+          service.getCharacteristic(accelerometer.ch.uuid)
+            .then(characteristic => {
+              characteristic.startNotifications()
+                .then(() => {
+                  accelerometer.startTime = Date.now();
+                  characteristic.addEventListener('characteristicvaluechanged', function (event) { // event handler
+                    var x = event.target.value.getInt16(0, true);
+                    var y = event.target.value.getInt16(2, true);
+                    var z = event.target.value.getInt16(4, true);
+                    var time = Date.now() - accelerometer.startTime;
+                    accelerometer.callback(x, y, z, time);
+                  })
+                })
+            })
+        })
+        .catch(error => {
+          console.log(error);
+          alert(error);
+        })
+    }
+    accelerometer.stop = function () {
+      if (!this.device || !this.device.gatt.connected)
+        return;
+      this.device.gatt.disconnect();
+      // this.callback('', '', '');
+    }
+
+    // disconnect process
+    function disconnect() {
+      accelerometer.stop();
+    }
+
+    function connect() {
+      console.log(navigator.bluetooth);
+      accelerometer.start(function (x, y, z, time) {
+        document.accelerationUI.x.value = x;
+        document.accelerationUI.y.value = y;
+        document.accelerationUI.z.value = z;
+        document.accelerationUI.notificationDuration.value = Math.floor(time / 1000);
+      });
+    }
+  </script>
+</body>
+
+</html>
