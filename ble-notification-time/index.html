@@ -17,7 +17,7 @@
     Y = <input type="text" name="y" value="" />/
     Z = <input type="text" name="z" value="" />
     <br>
-    notification duretion = <input type="text" name="notificationDuration" value="" />[s]
+    notification duration = <input type="text" name="notificationDuration" value="" />[s]
   </form>
   <script type="text/javascript">
     var accelerometer = {
@@ -27,7 +27,7 @@
       callback: null,
       startTime: null,
     }
-    // callback(x, y, z)
+    // callback(x, y, z, time)
     accelerometer.start = function (callback) {
       console.log(navigator.bluetooth);
       accelerometer.callback = callback
@@ -45,7 +45,6 @@
           return server.getPrimaryService(accelerometer.service.uuid)
         })
         .then(service => {
-          // 加速度センサーの値
           service.getCharacteristic(accelerometer.ch.uuid)
             .then(characteristic => {
               characteristic.startNotifications()
@@ -70,7 +69,6 @@
       if (!this.device || !this.device.gatt.connected)
         return;
       this.device.gatt.disconnect();
-      // this.callback('', '', '');
     }
 
     // disconnect process
